@@ -1,0 +1,85 @@
+// src/manager/SkillManager.js
+import { ECSManager } from '../ui/ecs/ECSManager';
+import { SkillSystem } from '../ui/systems/SkillSystem';
+import { SkillComponent } from '../components/skills/SkillComponent';
+import { UIComponent } from '../ui/components/base/UIComponent';
+import { PositionComponent } from '../ui/components/base/Position';
+import { SizeComponent } from '../ui/components/base/Size';
+import { SpriteComponent } from '../ui/components/base/Sprite';
+import { InteractiveComponent } from '../ui/components/base/Interactive';
+
+export class SkillManager {
+    constructor(scene) {
+	this.scene = scene;
+	this.ecs = new ECSManager(scene);
+	this.ecs.addSystem('skill', new SkillSystem(scene));
+
+	// Ajouter d'autres systèmes nécessaires si besoin
+	// Par exemple, nous pouvons réutiliser le système de rendu UI existant
+
+	this.skills = new Map(); // Map pour stocker les références aux entités de compétences
+    }
+
+    createSkill(skillData, owner) {
+	const entity = this.ecs.createEntity();
+
+	// Ajouter le composant de compétence
+	entity.addComponent(new SkillComponent(skillData));
+
+	// Si nous voulons créer une interface utilisateur pour cette compétence
+	if (skillData.createUI) {
+	    // Ajouter les composants UI nécessaires
+	    entity.addComponent(new UIComponent());
+	    entity.addComponent(new PositionComponent(skillData.uiX || 0, skillData.uiY || 0));
+	    entity.addComponent(new SizeComponent(skillData.uiWidth || 50, skillData.uiHeight || 50));
+
+	    // Ajouter le sprite pour l'icône
+	    if (skillData.icon) {
+		entity.addComponent(new SpriteComponent({
+		    texture: skillData.icon,
+		    frame: skillData.iconFrame
+		}));
+	    }
+
+	    // Ajouter l'interactivité
+	    entity.addComponent(new InteractiveComponent({
+		onClick: () => this.useSkill(entity.id, owner)
+	    }));
+	}
+
+	// Stocker la référence à la compétence
+	this.skills.set(entity.id, {
+	    entity,
+	    owner
+	});
+
+	// Notifier le gestionnaire ECS qu'une entité a été modifiée
+	this.ecs.entityComponentChanged(entity);
+
+	return entity.id;
+    }
+
+    useSkill(skillId, target) {
+	const skillData = this.skills.get(skillId);
+
+	if (!skillData) {
+	    console.warn(`Skill with ID ${skillId} not found.`);
+	    return false;
+	}
+
+	const entity = skillData.entity;
+	const owner = skillData.owner;
+	const skill = entity.getComponent('skill');
+
+	if (!skill) {
+	    console.warn(`Entity ${skillId} does not have a skill component.`);
+	    return false;
+	}
+
+	return skill.cast(owner, target);
+    }
+
+    update(time, delta) {
+	this.ecs.update(time, delta);
+    }
+}

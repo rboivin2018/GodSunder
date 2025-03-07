@@ -1,5 +1,5 @@
 export class Component {
-    constructor(type) {
-        this.type = type
-    }
+  constructor(type) {
+    this.type = type;
+  }
 }

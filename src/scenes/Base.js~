@@ -1,0 +1,44 @@
+import { Scene } from 'phaser';
+
+import { ECSManager } from "../ui/ecs/ECSManager";
+import { UIRenderSystem } from "../ui/systems/UIRender";
+import { UIAnimationSystem } from "../ui/systems/UIAnimation";
+import { PhaserUIFactory } from "../ui/PhaserUIFactory";
+
+
+export class BaseScene extends Scene {
+    constructor(scene) {
+	super(scene);
+
+	// Initialisation du système ECS
+	this.ecsManager = new ECSManager();
+
+	// Variables pour le dimensionnement responsive
+	this.baseWidth = 800;  // Largeur de référence pour le design
+	this.baseHeight = 600; // Hauteur de référence pour le design
+	this.scaleRatio = 1;   // Ratio d'échelle calculé dynamiquement
+    }
+
+    create() {
+	// Initialisation des systèmes ECS
+	this.uiRenderSystem = new UIRenderSystem(this);
+	this.uiAnimationSystem = new UIAnimationSystem(this);
+
+	this.ecsManager.addSystem('render', this.uiRenderSystem);
+	this.ecsManager.addSystem('animation', this.uiAnimationSystem);
+
+	// Créer la factory UI
+	this.uiFactory = new PhaserUIFactory(this.ecsManager);
+
+	// Calculer le ratio d'échelle
+	const width = this.cameras.main.width;
+	const height = this.cameras.main.height;
+	this.scaleRatio = Math.min(width / this.baseWidth, height / this.baseHeight);
+
+    }
+
+    update(time, delta) {
+	// Mettre à jour les systèmes ECS
+	this.ecsManager.update(time, delta);
+    }
+}
